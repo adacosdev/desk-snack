@@ -21,7 +21,69 @@ const STORAGE_KEYS = {
   sittingMinutes: 'desk-snack:sittingMinutes',
   standingMinutes: 'desk-snack:standingMinutes',
   theme: 'desk-snack:theme',
+  workSchedule: 'desk-snack:workSchedule',
 };
+
+interface DaySchedule {
+  morningStart: string;
+  morningEnd: string;
+  afternoonStart: string;
+  afternoonEnd: string;
+}
+
+interface DayOverride extends Partial<DaySchedule> {
+  enabled?: boolean;
+}
+
+interface WorkSchedule {
+  default: DaySchedule;
+  overrides: Partial<Record<number, DayOverride>>;
+}
+
+function parseTime24(hhmm: string): { h: number; m: number } {
+  const [h, m] = hhmm.split(':').map(Number);
+  return {
+    h: Number.isFinite(h) ? Math.max(0, Math.min(23, h)) : 0,
+    m: Number.isFinite(m) ? Math.max(0, Math.min(59, m)) : 0,
+  };
+}
+
+function formatTime24(h: number, m: number): string {
+  return `${String(Math.max(0, Math.min(23, h))).padStart(2, '0')}:${String(Math.max(0, Math.min(59, m))).padStart(2, '0')}`;
+}
+
+const DEFAULT_DAY_SCHEDULE: DaySchedule = {
+  morningStart: '09:00',
+  morningEnd: '13:00',
+  afternoonStart: '15:00',
+  afternoonEnd: '18:00',
+};
+
+const DEFAULT_WORK_SCHEDULE: WorkSchedule = {
+  default: { ...DEFAULT_DAY_SCHEDULE },
+  overrides: {},
+};
+
+function loadWorkSchedule(): WorkSchedule {
+  if (typeof localStorage === 'undefined') return DEFAULT_WORK_SCHEDULE;
+  const raw = localStorage.getItem(STORAGE_KEYS.workSchedule);
+  if (!raw) return DEFAULT_WORK_SCHEDULE;
+  try {
+    const parsed = JSON.parse(raw) as WorkSchedule;
+    if (!parsed?.default) return DEFAULT_WORK_SCHEDULE;
+    return {
+      default: { ...DEFAULT_DAY_SCHEDULE, ...parsed.default },
+      overrides: parsed.overrides ?? {},
+    };
+  } catch {
+    return DEFAULT_WORK_SCHEDULE;
+  }
+}
+
+function saveWorkSchedule(schedule: WorkSchedule) {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.workSchedule, JSON.stringify(schedule));
+}
 
 const THEME_COLORS: Record<string, string> = { dark: '#000000', light: '#f2f2f7' };
 const CIRCLE_LENGTH = 2 * Math.PI * 45;
@@ -72,13 +134,62 @@ const currentSnack = ref<string | null>(null);
 const settingsOpen = ref(false);
 const endTime = ref(0);
 const theme = ref<'dark' | 'light'>('dark');
+const workSchedule = ref<WorkSchedule>({ ...DEFAULT_WORK_SCHEDULE });
+const scheduleCheckTime = ref(Date.now());
+const expandedScheduleDay = ref<number | null>(null);
 let intervalId: ReturnType<typeof setInterval> | null = null;
+let scheduleTickId: ReturnType<typeof setInterval> | null = null;
 
 function saveConfig() {
   if (typeof localStorage === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.sittingMinutes, String(sittingMinutes.value));
   localStorage.setItem(STORAGE_KEYS.standingMinutes, String(standingMinutes.value));
 }
+
+const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as const;
+
+function isDayEnabled(day: number): boolean {
+  const override = workSchedule.value.overrides[day];
+  if (override && typeof override.enabled === 'boolean') return override.enabled;
+  return true;
+}
+
+function getScheduleForDay(day: number): DaySchedule {
+  const base = workSchedule.value.default;
+  const override = workSchedule.value.overrides[day];
+  if (!override) return base;
+  const { enabled: _e, ...times } = override;
+  return { ...base, ...times };
+}
+
+function getTodaySchedule(): DaySchedule {
+  return getScheduleForDay(new Date().getDay());
+}
+
+function timeToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(':').map(Number);
+  return (Number.isFinite(h) ? h : 0) * 60 + (Number.isFinite(m) ? m : 0);
+}
+
+function isWithinWorkWindow(now?: Date): boolean {
+  const t = now ?? new Date();
+  const day = t.getDay();
+  if (!isDayEnabled(day)) return false;
+  const s = getScheduleForDay(day);
+  const nowM = t.getHours() * 60 + t.getMinutes();
+  const morningStart = timeToMinutes(s.morningStart);
+  const morningEnd = timeToMinutes(s.morningEnd);
+  if (nowM >= morningStart && nowM < morningEnd) return true;
+  const afternoonStart = timeToMinutes(s.afternoonStart);
+  const afternoonEnd = timeToMinutes(s.afternoonEnd);
+  if (afternoonStart < afternoonEnd && nowM >= afternoonStart && nowM < afternoonEnd) return true;
+  return false;
+}
+
+const isWithinWorkSchedule = computed(() => {
+  scheduleCheckTime.value;
+  return isWithinWorkWindow();
+});
 
 function setState(newState: TimerState) {
   if (state.value === newState) return;
@@ -279,10 +390,52 @@ function updateStandingMinutes(val: number) {
   saveConfig();
 }
 
+function updateSchedule() {
+  saveWorkSchedule(workSchedule.value);
+}
+
+function setDayOverride(day: number, field: keyof DaySchedule, value: string) {
+  const prev = workSchedule.value.overrides[day];
+  const next: DayOverride = { ...prev, [field]: value };
+  workSchedule.value = {
+    ...workSchedule.value,
+    overrides: { ...workSchedule.value.overrides, [day]: next },
+  };
+  saveWorkSchedule(workSchedule.value);
+}
+
+function setDayEnabled(day: number, enabled: boolean) {
+  const prev = workSchedule.value.overrides[day];
+  const next: DayOverride = { ...prev, enabled };
+  workSchedule.value = {
+    ...workSchedule.value,
+    overrides: { ...workSchedule.value.overrides, [day]: next },
+  };
+  saveWorkSchedule(workSchedule.value);
+}
+
+function clearDayOverride(day: number) {
+  const { [day]: _, ...rest } = workSchedule.value.overrides;
+  workSchedule.value = { ...workSchedule.value, overrides: rest };
+  saveWorkSchedule(workSchedule.value);
+  expandedScheduleDay.value = null;
+}
+
+function setDefaultTime(field: keyof DaySchedule, h: number, m: number) {
+  workSchedule.value.default[field] = formatTime24(h, m);
+  saveWorkSchedule(workSchedule.value);
+}
+
+function setDayOverrideTime(day: number, field: keyof DaySchedule, h: number, m: number) {
+  setDayOverride(day, field, formatTime24(h, m));
+}
+
 function resetSettings() {
   sittingMinutes.value = 25;
   standingMinutes.value = 5;
+  workSchedule.value = { ...DEFAULT_WORK_SCHEDULE };
   saveConfig();
+  saveWorkSchedule(workSchedule.value);
 }
 
 function toggleTheme() {
@@ -296,6 +449,7 @@ function toggleTheme() {
 onMounted(() => {
   sittingMinutes.value = loadNumber(STORAGE_KEYS.sittingMinutes, 25);
   standingMinutes.value = loadNumber(STORAGE_KEYS.standingMinutes, 5);
+  workSchedule.value = loadWorkSchedule();
   const savedTheme =
     typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.theme) : null;
   const resolved =
@@ -304,6 +458,10 @@ onMounted(() => {
   theme.value = resolved === 'dark' ? 'dark' : 'light';
   applyTheme(savedTheme ?? '');
 
+  scheduleTickId = setInterval(() => {
+    scheduleCheckTime.value = Date.now();
+  }, 60_000);
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
@@ -311,6 +469,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopTick();
+  if (scheduleTickId) {
+    clearInterval(scheduleTickId);
+    scheduleTickId = null;
+  }
 });
 </script>
 
@@ -331,6 +493,12 @@ onUnmounted(() => {
           <path d="M12 15.5l-3.5 5.5" />
           <path d="M12 15.5l3.5 5.5" />
           <path d="M8.5 11h7" />
+        </svg>
+      </div>
+      <div class="schedule-badge" :class="{ 'schedule-badge--in': isWithinWorkSchedule, 'schedule-badge--out': !isWithinWorkSchedule }" aria-live="polite" :aria-label="isWithinWorkSchedule ? 'Dentro de jornada' : 'Fuera de jornada'">
+        <svg class="icon-schedule" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
         </svg>
       </div>
       <div class="timer-ring" aria-hidden="true">
@@ -430,7 +598,7 @@ onUnmounted(() => {
     <div class="sheet-backdrop" aria-hidden="true" @click="closeSettings" />
     <div class="sheet-panel">
       <div class="sheet-handle" aria-hidden="true" />
-      <h2 class="sheet-title">CONFIG</h2>
+      <h2 class="sheet-title">CONFIGURACIÓN</h2>
 
       <div class="sheet-settings">
         <div class="setting-block">
@@ -470,6 +638,233 @@ onUnmounted(() => {
             <span class="setting-unit">min</span>
           </div>
         </div>
+
+        <div class="schedule-section">
+          <h3 class="schedule-section-title">Jornada laboral</h3>
+          <p class="schedule-section-desc">Horario por defecto (24 h)</p>
+          <div class="schedule-grid">
+            <div class="setting-block schedule-block">
+              <label for="morning-start-h" class="setting-block-label">Inicio mañana</label>
+              <div class="time-input-24h">
+                <input
+                  id="morning-start-h"
+                  type="number"
+                  min="0"
+                  max="23"
+                  :value="parseTime24(workSchedule.default.morningStart).h"
+                  @input="setDefaultTime('morningStart', +(($event.target as HTMLInputElement).value) || 0, parseTime24(workSchedule.default.morningStart).m)"
+                />
+                <span class="time-sep">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  :value="parseTime24(workSchedule.default.morningStart).m"
+                  @input="setDefaultTime('morningStart', parseTime24(workSchedule.default.morningStart).h, +(($event.target as HTMLInputElement).value) || 0)"
+                />
+              </div>
+            </div>
+            <div class="setting-block schedule-block">
+              <label for="morning-end-h" class="setting-block-label">Fin mañana</label>
+              <div class="time-input-24h">
+                <input
+                  id="morning-end-h"
+                  type="number"
+                  min="0"
+                  max="23"
+                  :value="parseTime24(workSchedule.default.morningEnd).h"
+                  @input="setDefaultTime('morningEnd', +(($event.target as HTMLInputElement).value) || 0, parseTime24(workSchedule.default.morningEnd).m)"
+                />
+                <span class="time-sep">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  :value="parseTime24(workSchedule.default.morningEnd).m"
+                  @input="setDefaultTime('morningEnd', parseTime24(workSchedule.default.morningEnd).h, +(($event.target as HTMLInputElement).value) || 0)"
+                />
+              </div>
+            </div>
+            <div class="setting-block schedule-block">
+              <label for="afternoon-start-h" class="setting-block-label">Inicio tarde</label>
+              <div class="time-input-24h">
+                <input
+                  id="afternoon-start-h"
+                  type="number"
+                  min="0"
+                  max="23"
+                  :value="parseTime24(workSchedule.default.afternoonStart).h"
+                  @input="setDefaultTime('afternoonStart', +(($event.target as HTMLInputElement).value) || 0, parseTime24(workSchedule.default.afternoonStart).m)"
+                />
+                <span class="time-sep">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  :value="parseTime24(workSchedule.default.afternoonStart).m"
+                  @input="setDefaultTime('afternoonStart', parseTime24(workSchedule.default.afternoonStart).h, +(($event.target as HTMLInputElement).value) || 0)"
+                />
+              </div>
+            </div>
+            <div class="setting-block schedule-block">
+              <label for="afternoon-end-h" class="setting-block-label">Fin tarde</label>
+              <div class="time-input-24h">
+                <input
+                  id="afternoon-end-h"
+                  type="number"
+                  min="0"
+                  max="23"
+                  :value="parseTime24(workSchedule.default.afternoonEnd).h"
+                  @input="setDefaultTime('afternoonEnd', +(($event.target as HTMLInputElement).value) || 0, parseTime24(workSchedule.default.afternoonEnd).m)"
+                />
+                <span class="time-sep">:</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  :value="parseTime24(workSchedule.default.afternoonEnd).m"
+                  @input="setDefaultTime('afternoonEnd', parseTime24(workSchedule.default.afternoonEnd).h, +(($event.target as HTMLInputElement).value) || 0)"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="schedule-overrides">
+            <p class="schedule-section-desc">Días con horario distinto</p>
+            <div class="schedule-day-list">
+              <div
+                v-for="day in 7"
+                :key="day - 1"
+                class="schedule-day-item"
+                :class="{ 'schedule-day-item--open': expandedScheduleDay === day - 1 }"
+              >
+                <button
+                  type="button"
+                  class="schedule-day-head"
+                  :aria-expanded="expandedScheduleDay === day - 1"
+                  @click="expandedScheduleDay = expandedScheduleDay === day - 1 ? null : day - 1"
+                >
+                  <span>{{ DAY_NAMES[day - 1] }}</span>
+                  <span v-if="workSchedule.overrides[day - 1]?.enabled === false" class="schedule-day-badge schedule-day-badge--off">Desactivado</span>
+                  <span v-else-if="(workSchedule.overrides[day - 1]?.morningStart !== undefined) || (workSchedule.overrides[day - 1]?.afternoonEnd !== undefined)" class="schedule-day-badge">Personalizado</span>
+                  <svg class="schedule-day-chevron" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                <div v-show="expandedScheduleDay === day - 1" class="schedule-day-body">
+                  <div class="schedule-day-toggle">
+                    <span class="setting-block-label">Día laborable</span>
+                    <button
+                      type="button"
+                      class="toggle-switch"
+                      :class="{ 'toggle-switch--on': isDayEnabled(day - 1) }"
+                      :aria-pressed="isDayEnabled(day - 1)"
+                      :aria-label="isDayEnabled(day - 1) ? 'Desactivar día' : 'Activar día'"
+                      @click="setDayEnabled(day - 1, !isDayEnabled(day - 1))"
+                    >
+                      <span class="toggle-switch-knob" />
+                    </button>
+                  </div>
+                  <template v-if="isDayEnabled(day - 1)">
+                    <div class="schedule-grid schedule-grid--small">
+                      <div class="setting-block schedule-block">
+                        <label :for="'override-morning-start-h-' + (day - 1)" class="setting-block-label">Inicio mañana</label>
+                        <div class="time-input-24h">
+                          <input
+                            :id="'override-morning-start-h-' + (day - 1)"
+                            type="number"
+                            min="0"
+                            max="23"
+                            :value="parseTime24(getScheduleForDay(day - 1).morningStart).h"
+                            @input="setDayOverrideTime(day - 1, 'morningStart', +(($event.target as HTMLInputElement).value) || 0, parseTime24(getScheduleForDay(day - 1).morningStart).m)"
+                          />
+                          <span class="time-sep">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            :value="parseTime24(getScheduleForDay(day - 1).morningStart).m"
+                            @input="setDayOverrideTime(day - 1, 'morningStart', parseTime24(getScheduleForDay(day - 1).morningStart).h, +(($event.target as HTMLInputElement).value) || 0)"
+                          />
+                        </div>
+                      </div>
+                      <div class="setting-block schedule-block">
+                        <label :for="'override-morning-end-h-' + (day - 1)" class="setting-block-label">Fin mañana</label>
+                        <div class="time-input-24h">
+                          <input
+                            :id="'override-morning-end-h-' + (day - 1)"
+                            type="number"
+                            min="0"
+                            max="23"
+                            :value="parseTime24(getScheduleForDay(day - 1).morningEnd).h"
+                            @input="setDayOverrideTime(day - 1, 'morningEnd', +(($event.target as HTMLInputElement).value) || 0, parseTime24(getScheduleForDay(day - 1).morningEnd).m)"
+                          />
+                          <span class="time-sep">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            :value="parseTime24(getScheduleForDay(day - 1).morningEnd).m"
+                            @input="setDayOverrideTime(day - 1, 'morningEnd', parseTime24(getScheduleForDay(day - 1).morningEnd).h, +(($event.target as HTMLInputElement).value) || 0)"
+                          />
+                        </div>
+                      </div>
+                      <div class="setting-block schedule-block">
+                        <label :for="'override-afternoon-start-h-' + (day - 1)" class="setting-block-label">Inicio tarde</label>
+                        <div class="time-input-24h">
+                          <input
+                            :id="'override-afternoon-start-h-' + (day - 1)"
+                            type="number"
+                            min="0"
+                            max="23"
+                            :value="parseTime24(getScheduleForDay(day - 1).afternoonStart).h"
+                            @input="setDayOverrideTime(day - 1, 'afternoonStart', +(($event.target as HTMLInputElement).value) || 0, parseTime24(getScheduleForDay(day - 1).afternoonStart).m)"
+                          />
+                          <span class="time-sep">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            :value="parseTime24(getScheduleForDay(day - 1).afternoonStart).m"
+                            @input="setDayOverrideTime(day - 1, 'afternoonStart', parseTime24(getScheduleForDay(day - 1).afternoonStart).h, +(($event.target as HTMLInputElement).value) || 0)"
+                          />
+                        </div>
+                      </div>
+                      <div class="setting-block schedule-block">
+                        <label :for="'override-afternoon-end-h-' + (day - 1)" class="setting-block-label">Fin tarde</label>
+                        <div class="time-input-24h">
+                          <input
+                            :id="'override-afternoon-end-h-' + (day - 1)"
+                            type="number"
+                            min="0"
+                            max="23"
+                            :value="parseTime24(getScheduleForDay(day - 1).afternoonEnd).h"
+                            @input="setDayOverrideTime(day - 1, 'afternoonEnd', +(($event.target as HTMLInputElement).value) || 0, parseTime24(getScheduleForDay(day - 1).afternoonEnd).m)"
+                          />
+                          <span class="time-sep">:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            :value="parseTime24(getScheduleForDay(day - 1).afternoonEnd).m"
+                            @input="setDayOverrideTime(day - 1, 'afternoonEnd', parseTime24(getScheduleForDay(day - 1).afternoonEnd).h, +(($event.target as HTMLInputElement).value) || 0)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      v-if="(workSchedule.overrides[day - 1]?.morningStart !== undefined) || (workSchedule.overrides[day - 1]?.afternoonEnd !== undefined) || (workSchedule.overrides[day - 1]?.morningEnd !== undefined) || (workSchedule.overrides[day - 1]?.afternoonStart !== undefined)"
+                      type="button"
+                      class="btn-secondary btn-sm"
+                      @click="clearDayOverride(day - 1)"
+                    >
+                      Usar horario por defecto
+                    </button>
+                  </template>
+                  <p v-else class="schedule-day-off-desc">Día no laborable</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="sheet-actions">
@@ -483,7 +878,6 @@ onUnmounted(() => {
         >
           <svg v-if="theme === 'dark'" class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg v-else class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <span class="toggle-theme-text">Tema</span>
         </button>
         <button type="button" class="btn-secondary btn-icon-reset" aria-label="Restablecer valores" @click="resetSettings">
           <svg class="icon-btn" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
