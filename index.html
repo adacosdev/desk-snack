@@ -19,9 +19,15 @@
 <body>
   <main id="app" class="app">
     <div class="screen-main">
-      <p class="state-label">—</p>
-      <div class="timer-ring"><span class="timer-display">00:00</span></div>
-      <button type="button" class="btn-primary">Iniciar</button>
+      <p class="state-label" id="state-label">—</p>
+      <div class="timer-ring" id="timer-ring" aria-hidden="true">
+        <svg viewBox="0 0 100 100" class="timer-svg">
+          <circle class="timer-bg" cx="50" cy="50" r="45" />
+          <circle class="timer-progress" id="timer-progress" cx="50" cy="50" r="45" />
+        </svg>
+        <span class="timer-display" id="timer-display" aria-live="polite" aria-atomic="true">00:00</span>
+      </div>
+      <button type="button" class="btn-primary" id="btn-main" aria-label="Iniciar">Iniciar</button>
     </div>
   </main>
   <script src="/js/app.js" defer></script>

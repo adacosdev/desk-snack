@@ -136,8 +136,58 @@ class TimerApp {
   }
 }
 
+function initProgressRing() {
+  const progressEl = document.getElementById('timer-progress');
+  if (progressEl) progressEl.style.strokeDasharray = CIRCLE_LENGTH;
+}
+
 const timerApp = new TimerApp();
 
+function render(state) {
+  const labelEl = document.getElementById('state-label');
+  const displayEl = document.getElementById('timer-display');
+  const progressEl = document.getElementById('timer-progress');
+  const btnEl = document.getElementById('btn-main');
+
+  if (!labelEl || !displayEl || !progressEl || !btnEl) return;
+
+  const isSitting = state.state === 'sitting_active' || state.state === 'sitting_done' || (state.state === 'paused' && state.pausedState === 'sitting_active');
+  labelEl.textContent = state.state === 'idle' ? '—' : isSitting ? 'Sentado' : 'De pie';
+
+  displayEl.textContent = state.formatTime(state.remainingSeconds);
+
+  const ratio = state.progressRatio();
+  progressEl.style.strokeDashoffset = (1 - ratio) * CIRCLE_LENGTH;
+
+  if (state.state === 'idle' || state.state === 'standing_done') {
+    btnEl.textContent = 'Iniciar';
+    btnEl.dataset.action = 'start';
+  } else if (state.state === 'sitting_done') {
+    btnEl.textContent = 'Ya estoy de pie!';
+    btnEl.dataset.action = 'confirm';
+  } else if (state.state === 'standing_done') {
+    btnEl.textContent = 'Ya me he sentado!';
+    btnEl.dataset.action = 'confirm';
+  } else if (state.state === 'paused') {
+    btnEl.textContent = 'Reanudar';
+    btnEl.dataset.action = 'resume';
+  } else {
+    btnEl.textContent = 'Pausar';
+    btnEl.dataset.action = 'pause';
+  }
+}
+
+timerApp.onStateChange = render;
+
 document.addEventListener('DOMContentLoaded', () => {
-  // UI wiring in next commits
+  initProgressRing();
+  render(timerApp);
+
+  document.getElementById('btn-main')?.addEventListener('click', () => {
+    const action = document.getElementById('btn-main')?.dataset.action;
+    if (action === 'start') timerApp.start();
+    else if (action === 'pause') timerApp.pause();
+    else if (action === 'resume') timerApp.resume();
+    else if (action === 'confirm') timerApp.confirmTransition();
+  });
 });
