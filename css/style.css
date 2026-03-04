@@ -86,6 +86,17 @@ body {
   position: relative;
   width: min(280px, 85vw);
   aspect-ratio: 1;
+  transition: transform 0.5s ease;
+}
+
+.app[data-state="sitting_active"] .timer-ring,
+.app[data-state="standing_active"] .timer-ring {
+  animation: timerPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 .timer-svg {
@@ -155,13 +166,33 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 0 1.5rem 1.5rem;
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  padding-left: calc(1.5rem + env(safe-area-inset-left));
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
   pointer-events: none;
 }
 
 .overlay[hidden] { display: none; }
 .overlay:not([hidden]) { pointer-events: auto; }
+
+.overlay:not([hidden]) .overlay-backdrop {
+  animation: overlayFadeIn 0.3s ease forwards;
+}
+
+.overlay:not([hidden]) .overlay-content {
+  animation: overlaySlideUp 0.35s ease forwards;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlaySlideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
 .overlay-backdrop {
   position: absolute;
@@ -253,6 +284,14 @@ body {
 .sheet[hidden] { display: none; }
 .sheet:not([hidden]) { pointer-events: auto; }
 
+.sheet:not([hidden]) .sheet-backdrop {
+  animation: overlayFadeIn 0.25s ease forwards;
+}
+
+.sheet:not([hidden]) .sheet-panel {
+  animation: overlaySlideUp 0.3s ease forwards;
+}
+
 .sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
 
 .sheet-panel {
@@ -264,6 +303,8 @@ body {
   border-radius: var(--radius) var(--radius) 0 0;
   padding: 1rem 1.5rem;
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  padding-left: calc(1.5rem + env(safe-area-inset-left));
+  padding-right: calc(1.5rem + env(safe-area-inset-right));
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
   overflow-y: auto;
 }
