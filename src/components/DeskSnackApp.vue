@@ -23,7 +23,7 @@ const STORAGE_KEYS = {
   theme: 'desk-snack:theme',
 };
 
-const THEME_COLORS: Record<string, string> = { dark: '#0f172a', light: '#f8fafc' };
+const THEME_COLORS: Record<string, string> = { dark: '#000000', light: '#f2f2f7' };
 const CIRCLE_LENGTH = 2 * Math.PI * 45;
 
 function pickRandom<T>(arr: T[]): T {
@@ -318,17 +318,19 @@ onUnmounted(() => {
   <main id="app" class="app" :data-state="state">
     <div class="screen-main">
       <div class="state-icon" aria-hidden="true">
-        <!-- Chair (sentado) -->
-        <svg v-if="isSittingState" class="icon-state" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 20v-8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8" />
-          <path d="M5 12h14" />
-          <path d="M7 12v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3" />
+        <!-- Sentado — estilo SF Symbols (figure.seated / chair) -->
+        <svg v-if="isSittingState" class="icon-state icon-apple" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 20V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v11" />
+          <path d="M6 14h12" />
+          <path d="M8 14V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v7" />
         </svg>
-        <!-- Person standing (de pie) -->
-        <svg v-else class="icon-state" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="5" r="2" />
-          <path d="M12 22v-4" />
-          <path d="M12 18a4 4 0 0 0 4-4V9a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z" />
+        <!-- De pie — estilo SF Symbols (figure.stand) -->
+        <svg v-else class="icon-state icon-apple" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="2.5" />
+          <path d="M12 8.5v7" />
+          <path d="M12 15.5l-3.5 5.5" />
+          <path d="M12 15.5l3.5 5.5" />
+          <path d="M8.5 11h7" />
         </svg>
       </div>
       <div class="timer-ring" aria-hidden="true">
@@ -392,11 +394,19 @@ onUnmounted(() => {
       <div class="overlay-content">
         <h2 id="alert-title" class="overlay-title visually-hidden">{{ overlayTitle }}</h2>
         <div class="overlay-icon" aria-hidden="true">
-          <svg v-if="state === 'sitting_done'" class="icon-overlay" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22v-4"/><path d="M12 18a4 4 0 0 0 4-4V9a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/><circle cx="12" cy="5" r="2"/>
+          <!-- De pie (overlay cuando toca levantarse) -->
+          <svg v-if="state === 'sitting_done'" class="icon-overlay icon-apple" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="5" r="2.5" />
+            <path d="M12 8.5v7" />
+            <path d="M12 15.5l-3.5 5.5" />
+            <path d="M12 15.5l3.5 5.5" />
+            <path d="M8.5 11h7" />
           </svg>
-          <svg v-else class="icon-overlay" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 20v-8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8"/><path d="M5 12h14"/><path d="M7 12v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/>
+          <!-- Sentado (overlay cuando toca sentarse) -->
+          <svg v-else class="icon-overlay icon-apple" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 20V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v11" />
+            <path d="M6 14h12" />
+            <path d="M8 14V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v7" />
           </svg>
         </div>
         <div class="snack-card" :hidden="!showSnackCard">
@@ -420,37 +430,49 @@ onUnmounted(() => {
     <div class="sheet-backdrop" aria-hidden="true" @click="closeSettings" />
     <div class="sheet-panel">
       <div class="sheet-handle" aria-hidden="true" />
-      <div class="setting-row setting-row-input">
-        <label for="sitting-min" class="setting-label-icon">
-          <svg class="icon-setting" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 20v-8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8"/><path d="M5 12h14"/><path d="M7 12v-3a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3"/></svg>
-        </label>
-        <input
-          id="sitting-min"
-          v-model.number="sittingMinutes"
-          type="number"
-          min="1"
-          max="120"
-          class="input-minutes"
-          @change="updateSittingMinutes(sittingMinutes)"
-        />
-        <span class="setting-unit">min</span>
+      <h2 class="sheet-title">CONFIG</h2>
+
+      <div class="sheet-settings">
+        <div class="setting-block">
+          <label for="sitting-min" class="setting-block-label">
+            <svg class="icon-setting icon-apple" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v11"/><path d="M6 14h12"/><path d="M8 14V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v7"/></svg>
+            <span>Sentado</span>
+          </label>
+          <div class="setting-block-input">
+            <input
+              id="sitting-min"
+              v-model.number="sittingMinutes"
+              type="number"
+              min="1"
+              max="120"
+              class="input-minutes"
+              @change="updateSittingMinutes(sittingMinutes)"
+            />
+            <span class="setting-unit">min</span>
+          </div>
+        </div>
+
+        <div class="setting-block">
+          <label for="standing-min" class="setting-block-label">
+            <svg class="icon-setting icon-apple" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 8.5v7"/><path d="M12 15.5l-3.5 5.5"/><path d="M12 15.5l3.5 5.5"/><path d="M8.5 11h7"/></svg>
+            <span>De pie</span>
+          </label>
+          <div class="setting-block-input">
+            <input
+              id="standing-min"
+              v-model.number="standingMinutes"
+              type="number"
+              min="1"
+              max="60"
+              class="input-minutes"
+              @change="updateStandingMinutes(standingMinutes)"
+            />
+            <span class="setting-unit">min</span>
+          </div>
+        </div>
       </div>
-      <div class="setting-row setting-row-input">
-        <label for="standing-min" class="setting-label-icon">
-          <svg class="icon-setting" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2"/><path d="M12 22v-4"/><path d="M12 18a4 4 0 0 0 4-4V9a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4z"/></svg>
-        </label>
-        <input
-          id="standing-min"
-          v-model.number="standingMinutes"
-          type="number"
-          min="1"
-          max="60"
-          class="input-minutes"
-          @change="updateStandingMinutes(standingMinutes)"
-        />
-        <span class="setting-unit">min</span>
-      </div>
-      <div class="setting-row setting-row-toggle">
+
+      <div class="sheet-actions">
         <button
           id="btn-theme"
           type="button"
@@ -459,13 +481,15 @@ onUnmounted(() => {
           aria-label="Cambiar tema"
           @click="toggleTheme"
         >
-          <svg v-if="theme === 'dark'" class="icon-setting" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-          <svg v-else class="icon-setting" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg v-if="theme === 'dark'" class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg v-else class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <span class="toggle-theme-text">Tema</span>
+        </button>
+        <button type="button" class="btn-secondary btn-icon-reset" aria-label="Restablecer valores" @click="resetSettings">
+          <svg class="icon-btn" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>Restablecer</span>
         </button>
       </div>
-      <button type="button" class="btn-secondary btn-icon-reset" aria-label="Restablecer valores" @click="resetSettings">
-        <svg class="icon-btn" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-      </button>
     </div>
   </div>
 </template>
