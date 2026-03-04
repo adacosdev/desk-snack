@@ -146,7 +146,7 @@ function saveConfig() {
   localStorage.setItem(STORAGE_KEYS.standingMinutes, String(standingMinutes.value));
 }
 
-const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as const;
+const DAY_NAMES = [ 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const;
 
 function isDayEnabled(day: number): boolean {
   const override = workSchedule.value.overrides[day];
@@ -379,13 +379,13 @@ function closeSettings() {
 }
 
 function updateSittingMinutes(val: number) {
-  const v = Number.isFinite(val) ? Math.max(1, Math.min(120, val)) : 25;
+  const v = Number.isFinite(val) ? Math.max(1, Math.min(120, val)) : 40;
   sittingMinutes.value = v;
   saveConfig();
 }
 
 function updateStandingMinutes(val: number) {
-  const v = Number.isFinite(val) ? Math.max(1, Math.min(60, val)) : 5;
+  const v = Number.isFinite(val) ? Math.max(1, Math.min(60, val)) : 20;
   standingMinutes.value = v;
   saveConfig();
 }
@@ -431,8 +431,8 @@ function setDayOverrideTime(day: number, field: keyof DaySchedule, h: number, m:
 }
 
 function resetSettings() {
-  sittingMinutes.value = 25;
-  standingMinutes.value = 5;
+  sittingMinutes.value = 40;
+  standingMinutes.value = 20;
   workSchedule.value = { ...DEFAULT_WORK_SCHEDULE };
   saveConfig();
   saveWorkSchedule(workSchedule.value);
@@ -447,8 +447,8 @@ function toggleTheme() {
 }
 
 onMounted(() => {
-  sittingMinutes.value = loadNumber(STORAGE_KEYS.sittingMinutes, 25);
-  standingMinutes.value = loadNumber(STORAGE_KEYS.standingMinutes, 5);
+  sittingMinutes.value = loadNumber(STORAGE_KEYS.sittingMinutes, 40);
+  standingMinutes.value = loadNumber(STORAGE_KEYS.standingMinutes, 20);
   workSchedule.value = loadWorkSchedule();
   const savedTheme =
     typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.theme) : null;
