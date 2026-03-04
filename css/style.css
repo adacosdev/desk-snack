@@ -1,10 +1,44 @@
 :root {
-  --bg: #0f172a;
-  --text: #f1f5f9;
-  --muted: #94a3b8;
   --radius: 1.25rem;
   --font-timer: 'DM Mono', monospace;
   --font-ui: 'Outfit', sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --bg-sitting: #0f172a;
+  --bg-standing: #1e1b2e;
+  --accent-sitting: #5eead4;
+  --accent-standing: #fda4af;
+}
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --text: #0f172a;
+  --muted: #64748b;
+  --bg-sitting: #f0fdfa;
+  --bg-standing: #fff1f2;
+  --accent-sitting: #0d9488;
+  --accent-standing: #e11d48;
+}
+
+html { background: var(--bg); }
+body { background: transparent; }
+
+.app[data-state="idle"],
+.app[data-state="paused"],
+.app[data-state="sitting_active"],
+.app[data-state="sitting_done"] {
+  background: var(--bg-sitting);
+  transition: background-color 0.6s ease;
+}
+
+.app[data-state="standing_active"],
+.app[data-state="standing_done"] {
+  background: var(--bg-standing);
+  transition: background-color 0.6s ease;
 }
 
 * { box-sizing: border-box; }
@@ -73,7 +107,17 @@ body {
   stroke-linecap: round;
   stroke-dasharray: 283;
   stroke-dashoffset: 0;
-  transition: stroke-dashoffset 0.3s linear;
+  transition: stroke-dashoffset 0.3s linear, stroke 0.4s ease;
+}
+
+.app[data-state="sitting_active"] .timer-progress,
+.app[data-state="sitting_done"] .timer-progress {
+  stroke: var(--accent-sitting);
+}
+
+.app[data-state="standing_active"] .timer-progress,
+.app[data-state="standing_done"] .timer-progress {
+  stroke: var(--accent-standing);
 }
 
 .timer-display {
@@ -295,3 +339,27 @@ body {
 
 .btn-secondary:hover { background: rgba(148, 163, 184, 0.25); }
 .btn-secondary:active { transform: scale(0.98); }
+
+.setting-row-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.toggle-theme {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.toggle-theme:hover { background: rgba(148, 163, 184, 0.25); }
+.toggle-theme:active { transform: scale(0.98); }

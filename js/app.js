@@ -16,6 +16,7 @@ const EXERCISE_SNACKS = [
 const STORAGE_KEYS = {
   sittingMinutes: 'desk-snack:sittingMinutes',
   standingMinutes: 'desk-snack:standingMinutes',
+  theme: 'desk-snack:theme',
 };
 
 const CIRCLE_LENGTH = 2 * Math.PI * 45;
@@ -206,6 +207,9 @@ function render(state) {
     btnEl.dataset.action = 'pause';
   }
 
+  const appEl = document.getElementById('app');
+  if (appEl) appEl.dataset.state = state.state;
+
   const overlay = document.getElementById('alert-overlay');
   const snackCard = document.getElementById('snack-card');
   const snackText = document.getElementById('snack-text');
@@ -231,7 +235,26 @@ function render(state) {
 
 timerApp.onStateChange = render;
 
+const THEME_COLORS = { dark: '#0f172a', light: '#f8fafc' };
+
+function applyTheme(value) {
+  const root = document.documentElement;
+  const resolved = value || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.dataset.theme = resolved;
+  const metaTheme = document.getElementById('meta-theme-color');
+  if (metaTheme) metaTheme.setAttribute('content', THEME_COLORS[resolved] || THEME_COLORS.dark);
+  const btnTheme = document.getElementById('btn-theme');
+  if (btnTheme) {
+    const isDark = resolved === 'dark';
+    btnTheme.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+    btnTheme.setAttribute('aria-pressed', isDark ? 'false' : 'true');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+  applyTheme(savedTheme || '');
+
   initProgressRing();
   render(timerApp);
 
@@ -298,5 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sittingValue) sittingValue.textContent = '25';
     if (standingValue) standingValue.textContent = '5';
     render(timerApp);
+  });
+
+  document.getElementById('btn-theme')?.addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    root.dataset.theme = next;
+    localStorage.setItem(STORAGE_KEYS.theme, next);
+    applyTheme(next);
   });
 });

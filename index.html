@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#0f172a" id="meta-theme-color" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Desk Snack" />
@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <main id="app" class="app">
+  <main id="app" class="app" data-state="idle">
     <div class="screen-main">
       <p class="state-label" id="state-label">—</p>
       <div class="timer-ring" id="timer-ring" aria-hidden="true">
@@ -52,7 +52,11 @@
             <span class="setting-value" id="standing-value">5</span> min
           </div>
         </div>
-        <button type="button" class="btn-secondary" id="btn-reset">Restablecer valores</button>
+        <div class="setting-row setting-row-toggle">
+        <span class="setting-label">Tema</span>
+        <button type="button" class="toggle-theme" id="btn-theme" aria-pressed="false">Modo claro</button>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-reset">Restablecer valores</button>
       </div>
     </div>
     <div class="overlay" id="alert-overlay" role="dialog" aria-modal="true" aria-labelledby="alert-title" hidden>
