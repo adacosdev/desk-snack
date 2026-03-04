@@ -274,15 +274,26 @@ body {
 .sheet {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 1000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   pointer-events: none;
+  visibility: hidden;
 }
 
-.sheet[hidden] { display: none; }
-.sheet:not([hidden]) { pointer-events: auto; }
+.sheet.sheet--open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.sheet[hidden] {
+  display: none !important;
+}
+
+.sheet:not([hidden]).sheet--open {
+  display: flex;
+}
 
 .sheet:not([hidden]) .sheet-backdrop {
   animation: overlayFadeIn 0.25s ease forwards;

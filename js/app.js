@@ -278,21 +278,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnReset = document.getElementById('btn-reset');
 
   function openSettings() {
-    if (sheet) sheet.hidden = false;
-    if (sittingInput) sittingInput.value = timerApp.sittingMinutes;
-    if (standingInput) standingInput.value = timerApp.standingMinutes;
+    if (sheet) {
+      sheet.removeAttribute('hidden');
+      sheet.classList.add('sheet--open');
+      sheet.setAttribute('aria-hidden', 'false');
+    }
+    if (sittingInput) {
+      sittingInput.value = timerApp.sittingMinutes;
+      sittingInput.setAttribute('value', String(timerApp.sittingMinutes));
+    }
+    if (standingInput) {
+      standingInput.value = timerApp.standingMinutes;
+      standingInput.setAttribute('value', String(timerApp.standingMinutes));
+    }
     if (sittingValue) sittingValue.textContent = timerApp.sittingMinutes;
     if (standingValue) standingValue.textContent = timerApp.standingMinutes;
   }
 
   function closeSettings() {
-    if (sheet) sheet.hidden = true;
+    if (sheet) {
+      sheet.classList.remove('sheet--open');
+      sheet.setAttribute('hidden', '');
+      sheet.setAttribute('aria-hidden', 'true');
+    }
   }
 
-  btnSettings?.addEventListener('click', openSettings);
+  document.body.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-settings')) {
+      e.preventDefault();
+      e.stopPropagation();
+      openSettings();
+    }
+  });
   settingsBackdrop?.addEventListener('click', closeSettings);
 
-  sittingInput?.addEventListener('input', () => {
+  function updateSittingMinutes() {
     const v = parseInt(sittingInput.value, 10);
     if (Number.isFinite(v)) {
       timerApp.sittingMinutes = Math.max(1, Math.min(120, v));
@@ -300,9 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sittingValue) sittingValue.textContent = timerApp.sittingMinutes;
       render(timerApp);
     }
-  });
+  }
 
-  standingInput?.addEventListener('input', () => {
+  function updateStandingMinutes() {
     const v = parseInt(standingInput.value, 10);
     if (Number.isFinite(v)) {
       timerApp.standingMinutes = Math.max(1, Math.min(60, v));
@@ -310,7 +330,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (standingValue) standingValue.textContent = timerApp.standingMinutes;
       render(timerApp);
     }
-  });
+  }
+
+  sittingInput?.addEventListener('input', updateSittingMinutes);
+  sittingInput?.addEventListener('change', updateSittingMinutes);
+
+  standingInput?.addEventListener('input', updateStandingMinutes);
+  standingInput?.addEventListener('change', updateStandingMinutes);
 
   btnReset?.addEventListener('click', () => {
     timerApp.sittingMinutes = 25;

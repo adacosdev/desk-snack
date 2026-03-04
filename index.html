@@ -34,32 +34,6 @@
         Configuración
       </button>
     </div>
-    <div class="sheet" id="settings-sheet" aria-modal="true" aria-label="Configuración" hidden>
-      <div class="sheet-backdrop" id="settings-backdrop"></div>
-      <div class="sheet-panel">
-        <div class="sheet-handle" aria-hidden="true"></div>
-        <h2 class="sheet-title">Configuración</h2>
-        <div class="setting-row">
-          <label for="sitting-min" class="setting-label">Minutos sentado</label>
-          <div class="setting-control">
-            <input type="range" id="sitting-min" min="1" max="120" value="25" />
-            <span class="setting-value" id="sitting-value">25</span> min
-          </div>
-        </div>
-        <div class="setting-row">
-          <label for="standing-min" class="setting-label">Minutos de pie</label>
-          <div class="setting-control">
-            <input type="range" id="standing-min" min="1" max="60" value="5" />
-            <span class="setting-value" id="standing-value">5</span> min
-          </div>
-        </div>
-        <div class="setting-row setting-row-toggle">
-        <span class="setting-label">Tema</span>
-        <button type="button" class="toggle-theme" id="btn-theme" aria-pressed="false">Modo claro</button>
-      </div>
-      <button type="button" class="btn-secondary" id="btn-reset">Restablecer valores</button>
-      </div>
-    </div>
     <div class="overlay" id="alert-overlay" role="dialog" aria-modal="true" aria-labelledby="alert-title" hidden>
       <div class="overlay-backdrop" id="alert-backdrop"></div>
       <div class="overlay-content">
@@ -72,6 +46,32 @@
       </div>
     </div>
   </main>
+  <div class="sheet" id="settings-sheet" aria-modal="true" aria-label="Configuración" aria-hidden="true" hidden>
+    <div class="sheet-backdrop" id="settings-backdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <h2 class="sheet-title">Configuración</h2>
+      <div class="setting-row">
+        <label for="sitting-min" class="setting-label">Minutos sentado</label>
+        <div class="setting-control">
+          <input type="range" id="sitting-min" min="1" max="120" value="25" />
+          <span class="setting-value" id="sitting-value">25</span> min
+        </div>
+      </div>
+      <div class="setting-row">
+        <label for="standing-min" class="setting-label">Minutos de pie</label>
+        <div class="setting-control">
+          <input type="range" id="standing-min" min="1" max="60" value="5" />
+          <span class="setting-value" id="standing-value">5</span> min
+        </div>
+      </div>
+      <div class="setting-row setting-row-toggle">
+        <span class="setting-label">Tema</span>
+        <button type="button" class="toggle-theme" id="btn-theme" aria-pressed="false">Modo claro</button>
+      </div>
+      <button type="button" class="btn-secondary" id="btn-reset">Restablecer valores</button>
+    </div>
+  </div>
   <script src="/js/app.js" defer></script>
 </body>
 </html>
