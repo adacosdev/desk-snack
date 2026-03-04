@@ -24,6 +24,26 @@ function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function playAlertSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (_) {}
+}
+
+function vibrateAlert() {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
 class TimerApp {
   constructor() {
     this.state = 'idle';
@@ -34,6 +54,7 @@ class TimerApp {
     this.intervalId = null;
     this.endTime = null;
     this.pausedState = null;
+    this.currentSnack = null;
     this.onStateChange = null;
   }
 
@@ -52,6 +73,15 @@ class TimerApp {
   setState(newState) {
     if (this.state === newState) return;
     this.state = newState;
+    if (newState === 'sitting_done') {
+      this.currentSnack = this.getSnack();
+      playAlertSound();
+      vibrateAlert();
+    } else if (newState === 'standing_done') {
+      this.currentSnack = null;
+      playAlertSound();
+      vibrateAlert();
+    }
     this.onStateChange?.(this);
   }
 
@@ -175,6 +205,28 @@ function render(state) {
     btnEl.textContent = 'Pausar';
     btnEl.dataset.action = 'pause';
   }
+
+  const overlay = document.getElementById('alert-overlay');
+  const snackCard = document.getElementById('snack-card');
+  const snackText = document.getElementById('snack-text');
+  const btnConfirm = document.getElementById('btn-confirm');
+  const alertTitle = document.getElementById('alert-title');
+  if (overlay && btnConfirm) {
+    const isDone = state.state === 'sitting_done' || state.state === 'standing_done';
+    overlay.hidden = !isDone;
+    if (isDone) {
+      alertTitle.textContent = state.state === 'sitting_done' ? '¡Hora de levantarte!' : '¡Hora de sentarte!';
+      if (snackCard && snackText) {
+        if (state.state === 'sitting_done' && state.currentSnack) {
+          snackCard.hidden = false;
+          snackText.textContent = state.currentSnack;
+        } else {
+          snackCard.hidden = true;
+        }
+      }
+      btnConfirm.textContent = state.state === 'sitting_done' ? '¡Ya estoy de pie!' : '¡Ya me he sentado!';
+    }
+  }
 }
 
 timerApp.onStateChange = render;
@@ -190,4 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (action === 'resume') timerApp.resume();
     else if (action === 'confirm') timerApp.confirmTransition();
   });
+
+  document.getElementById('btn-confirm')?.addEventListener('click', () => timerApp.confirmTransition());
 });

@@ -29,6 +29,17 @@
       </div>
       <button type="button" class="btn-primary" id="btn-main" aria-label="Iniciar">Iniciar</button>
     </div>
+    <div class="overlay" id="alert-overlay" role="dialog" aria-modal="true" aria-labelledby="alert-title" hidden>
+      <div class="overlay-backdrop" id="alert-backdrop"></div>
+      <div class="overlay-content">
+        <h2 class="overlay-title" id="alert-title">¡Hora de levantarte!</h2>
+        <div class="snack-card" id="snack-card" hidden>
+          <p class="snack-label">Snack de ejercicio</p>
+          <p class="snack-text" id="snack-text"></p>
+        </div>
+        <button type="button" class="btn-confirm" id="btn-confirm">Confirmar</button>
+      </div>
+    </div>
   </main>
   <script src="/js/app.js" defer></script>
 </body>
