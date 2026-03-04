@@ -244,4 +244,59 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-confirm')?.addEventListener('click', () => timerApp.confirmTransition());
+
+  const sheet = document.getElementById('settings-sheet');
+  const btnSettings = document.getElementById('btn-settings');
+  const settingsBackdrop = document.getElementById('settings-backdrop');
+  const sittingInput = document.getElementById('sitting-min');
+  const standingInput = document.getElementById('standing-min');
+  const sittingValue = document.getElementById('sitting-value');
+  const standingValue = document.getElementById('standing-value');
+  const btnReset = document.getElementById('btn-reset');
+
+  function openSettings() {
+    if (sheet) sheet.hidden = false;
+    if (sittingInput) sittingInput.value = timerApp.sittingMinutes;
+    if (standingInput) standingInput.value = timerApp.standingMinutes;
+    if (sittingValue) sittingValue.textContent = timerApp.sittingMinutes;
+    if (standingValue) standingValue.textContent = timerApp.standingMinutes;
+  }
+
+  function closeSettings() {
+    if (sheet) sheet.hidden = true;
+  }
+
+  btnSettings?.addEventListener('click', openSettings);
+  settingsBackdrop?.addEventListener('click', closeSettings);
+
+  sittingInput?.addEventListener('input', () => {
+    const v = parseInt(sittingInput.value, 10);
+    if (Number.isFinite(v)) {
+      timerApp.sittingMinutes = Math.max(1, Math.min(120, v));
+      timerApp.saveConfig();
+      if (sittingValue) sittingValue.textContent = timerApp.sittingMinutes;
+      render(timerApp);
+    }
+  });
+
+  standingInput?.addEventListener('input', () => {
+    const v = parseInt(standingInput.value, 10);
+    if (Number.isFinite(v)) {
+      timerApp.standingMinutes = Math.max(1, Math.min(60, v));
+      timerApp.saveConfig();
+      if (standingValue) standingValue.textContent = timerApp.standingMinutes;
+      render(timerApp);
+    }
+  });
+
+  btnReset?.addEventListener('click', () => {
+    timerApp.sittingMinutes = 25;
+    timerApp.standingMinutes = 5;
+    timerApp.saveConfig();
+    if (sittingInput) sittingInput.value = 25;
+    if (standingInput) standingInput.value = 5;
+    if (sittingValue) sittingValue.textContent = '25';
+    if (standingValue) standingValue.textContent = '5';
+    render(timerApp);
+  });
 });

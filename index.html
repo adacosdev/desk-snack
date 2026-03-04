@@ -28,6 +28,32 @@
         <span class="timer-display" id="timer-display" aria-live="polite" aria-atomic="true">00:00</span>
       </div>
       <button type="button" class="btn-primary" id="btn-main" aria-label="Iniciar">Iniciar</button>
+      <button type="button" class="btn-settings" id="btn-settings" aria-label="Configuración">
+        <svg class="icon-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        Configuración
+      </button>
+    </div>
+    <div class="sheet" id="settings-sheet" aria-modal="true" aria-label="Configuración" hidden>
+      <div class="sheet-backdrop" id="settings-backdrop"></div>
+      <div class="sheet-panel">
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <h2 class="sheet-title">Configuración</h2>
+        <div class="setting-row">
+          <label for="sitting-min" class="setting-label">Minutos sentado</label>
+          <div class="setting-control">
+            <input type="range" id="sitting-min" min="1" max="120" value="25" />
+            <span class="setting-value" id="sitting-value">25</span> min
+          </div>
+        </div>
+        <div class="setting-row">
+          <label for="standing-min" class="setting-label">Minutos de pie</label>
+          <div class="setting-control">
+            <input type="range" id="standing-min" min="1" max="60" value="5" />
+            <span class="setting-value" id="standing-value">5</span> min
+          </div>
+        </div>
+        <button type="button" class="btn-secondary" id="btn-reset">Restablecer valores</button>
+      </div>
     </div>
     <div class="overlay" id="alert-overlay" role="dialog" aria-modal="true" aria-labelledby="alert-title" hidden>
       <div class="overlay-backdrop" id="alert-backdrop"></div>
