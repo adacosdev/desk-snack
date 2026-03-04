@@ -40,7 +40,7 @@ function playAlertSound() {
     osc.frequency.value = 880;
     osc.type = 'sine';
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRa25mpToValueAtTime(0.01, ctx.currentTime + 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.4);
   } catch {
