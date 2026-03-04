@@ -1,0 +1,9 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DeskSnackApp from '../components/DeskSnackApp.vue';
+---
+<BaseLayout>
+  <main class="app-wrapper">
+    <DeskSnackApp client:load />
+  </main>
+</BaseLayout>
