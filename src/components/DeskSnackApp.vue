@@ -1,43 +1,44 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-// Snacks de fuerza para trabajo sentado (basados en recomendaciones para oficina)
+// 25 ejercicios de peso corporal para snacks de movimiento
 const EXERCISE_SNACKS = [
-  'Fondos en silla (apóyate en reposabrazos, 10 repeticiones).',
-  'Sentadillas desde la silla: 15 repeticiones.',
-  'Flexiones en la pared: 10 repeticiones.',
-  'Elevaciones de gemelos (de puntillas): 20 repeticiones.',
-  'Plancha en el escritorio (apoyo en mesa, 20 segundos).',
-  'Giro de torso sentado: 10 veces cada lado.',
-  'Fondos de tríceps en silla: 10 repeticiones.',
-  'Sentadilla contra la pared (wall sit): 20 segundos.',
-  'Elevaciones de pierna sentado (cuádriceps): 12 por pierna.',
-  'Asentimientos de cabeza (fortalecer cuello): 10 repeticiones.',
-  'Marcha elevando rodillas: 30 segundos.',
-  'Desplantes alternos: 8 por pierna.',
+  'Sentadilla con salto y rodillas al pecho: 8-12 repeticiones.',
+  'Flexión explosiva con despegue: 8-15 repeticiones.',
+  'Posición de cuerpo hueco: 30-60 segundos.',
+  'Sentadilla con salto explosivo: 10-15 repeticiones.',
+  'Escalador de montaña con giro cruzado: 45-60 segundos.',
+  'Sentadilla pistola (sobre una pierna): 5-8 por pierna.',
+  'Flexión con rotación alternada: 6-10 repeticiones por lado.',
+  'Rodillas altas en sprint: 45-60 segundos.',
+  'Bicho muerto avanzado: 10-12 repeticiones por lado.',
+  'Salto tucson (rodillas al pecho): 8-12 repeticiones.',
+  'Sentadilla cosaca: 8-10 repeticiones por lado.',
+  'Plancha lateral con elevación de pierna: 15-20 segundos por lado.',
+  'Gusanito hasta flexión: 10-12 repeticiones.',
+  'Mantener flexión isométrica: 30-45 segundos.',
+  'Salto horizontal explosivo: 6-8 repeticiones.',
+  'Giro ruso avanzado: 20-30 repeticiones total.',
+  'Mantener posición L: 20-40 segundos.',
+  'Estocada con salto alternado: 10-15 repeticiones por pierna.',
+  'Gateada de oso hacia adelante y atrás: 45-60 segundos.',
+  'Flexión explosiva con palmada: 6-10 repeticiones.',
+  'Puente de glúteo sobre una pierna: 30-40 segundos por pierna.',
+  'Burpee con salto horizontal explosivo: 6-8 repeticiones.',
+  'Abdominales en declinación: 12-15 repeticiones.',
+  'Estocada lateral con giro: 8-10 repeticiones por lado.',
+  'Saltos alternados sobre una pierna: 20-30 saltos total.',
 ];
 
 const STORAGE_KEYS = {
   theme: 'desk-snack:theme',
-  weekConfig: 'desk-snack:weekConfig',
+  sittingMinutes: 'desk-snack:sittingMinutes',
+  standingMinutes: 'desk-snack:standingMinutes',
 };
 
 const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const;
-const DAY_ABBREV = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] as const;
 
 // Type definitions
-interface DayConfig {
-  enabled: boolean;
-  sittingMinutes: number;
-  standingMinutes: number;
-}
-
-interface WeekConfig {
-  days: DayConfig[];
-  defaultSittingMinutes: number;
-  defaultStandingMinutes: number;
-}
-
 interface WorkdaySession {
   startTime: number;
   sittingCycles: number;
@@ -94,42 +95,6 @@ function getTodayIndex(): number {
   return day === 0 ? 6 : day - 1; // Convert Sunday=0 to 6, Monday=1 to 0
 }
 
-function getDefaultWeekConfig(): WeekConfig {
-  return {
-    defaultSittingMinutes: 40,
-    defaultStandingMinutes: 20,
-    days: [
-      { enabled: true, sittingMinutes: 40, standingMinutes: 20 }, // Monday
-      { enabled: true, sittingMinutes: 40, standingMinutes: 20 }, // Tuesday
-      { enabled: true, sittingMinutes: 40, standingMinutes: 20 }, // Wednesday
-      { enabled: true, sittingMinutes: 40, standingMinutes: 20 }, // Thursday
-      { enabled: true, sittingMinutes: 40, standingMinutes: 20 }, // Friday
-      { enabled: false, sittingMinutes: 40, standingMinutes: 20 }, // Saturday
-      { enabled: false, sittingMinutes: 40, standingMinutes: 20 }, // Sunday
-    ],
-  };
-}
-
-function loadWeekConfig(): WeekConfig {
-  if (typeof localStorage === 'undefined') return getDefaultWeekConfig();
-  const raw = localStorage.getItem(STORAGE_KEYS.weekConfig);
-  if (!raw) return getDefaultWeekConfig();
-  try {
-    const parsed = JSON.parse(raw) as WeekConfig;
-    if (!parsed?.days || !Array.isArray(parsed.days) || parsed.days.length !== 7) {
-      return getDefaultWeekConfig();
-    }
-    return parsed;
-  } catch {
-    return getDefaultWeekConfig();
-  }
-}
-
-function saveWeekConfig(config: WeekConfig) {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.weekConfig, JSON.stringify(config));
-}
-
 function formatSeconds(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -141,15 +106,12 @@ function formatSeconds(seconds: number): string {
 
 // Reactive state
 const appPhase = ref<AppPhase>('welcome');
-const weekConfig = ref<WeekConfig>(getDefaultWeekConfig());
 const currentSession = ref<WorkdaySession | null>(null);
-const selectedDayForEdit = ref<number | null>(null);
-const todayEditConfig = ref<DayConfig>({ enabled: true, sittingMinutes: 40, standingMinutes: 20 });
 
 // Timer state
 const state = ref<TimerState>('idle');
-const sittingMinutes = ref(40);
-const standingMinutes = ref(20);
+const sittingMinutes = ref(loadNumber(STORAGE_KEYS.sittingMinutes, 40));
+const standingMinutes = ref(loadNumber(STORAGE_KEYS.standingMinutes, 20));
 const remainingSeconds = ref(0);
 const totalSecondsForPhase = ref(0);
 const pausedState = ref<TimerState | null>(null);
@@ -160,13 +122,15 @@ const theme = ref<'dark' | 'light'>('dark');
 
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
-// Update today's config from weekConfig
-function updateTodayConfig() {
-  const todayIndex = getTodayIndex();
-  const todayDay = weekConfig.value.days[todayIndex];
-  todayEditConfig.value = { ...todayDay };
-  sittingMinutes.value = todayDay.sittingMinutes;
-  standingMinutes.value = todayDay.standingMinutes;
+// Setter functions for sitting/standing minutes
+function setSittingMinutes(value: number) {
+  sittingMinutes.value = value;
+  if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEYS.sittingMinutes, String(value));
+}
+
+function setStandingMinutes(value: number) {
+  standingMinutes.value = value;
+  if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEYS.standingMinutes, String(value));
 }
 
 // Computed properties
@@ -358,9 +322,6 @@ function onMainClick() {
 
 // App phase functions
 function startWorkday() {
-  const todayIndex = getTodayIndex();
-  const todayConfig = weekConfig.value.days[todayIndex];
-
   if (!currentSession.value) {
     currentSession.value = {
       startTime: Date.now(),
@@ -372,8 +333,6 @@ function startWorkday() {
     };
   }
 
-  sittingMinutes.value = todayConfig.sittingMinutes;
-  standingMinutes.value = todayConfig.standingMinutes;
   appPhase.value = 'active';
   start();
 }
@@ -388,7 +347,6 @@ function closeWorkday() {
   setState('idle');
   currentSession.value = null;
   appPhase.value = 'welcome';
-  updateTodayConfig();
 }
 
 function applyTheme(value: string) {
@@ -422,45 +380,8 @@ function closeSettings() {
   settingsOpen.value = false;
 }
 
-function openFullScheduleEditor(dayIndex: number) {
-  selectedDayForEdit.value = dayIndex;
-}
-
-function closeFullScheduleEditor() {
-  selectedDayForEdit.value = null;
-}
-
-function updateDayConfig(dayIndex: number, config: Partial<DayConfig>) {
-  const day = weekConfig.value.days[dayIndex];
-  const updated = { ...day, ...config };
-  const newDays = [...weekConfig.value.days];
-  newDays[dayIndex] = updated;
-  weekConfig.value = { ...weekConfig.value, days: newDays };
-  saveWeekConfig(weekConfig.value);
-  updateTodayConfig();
-}
-
-function updateTodayEditConfig(config: Partial<DayConfig>) {
-  const todayIndex = getTodayIndex();
-  const updated = { ...todayEditConfig.value, ...config };
-  todayEditConfig.value = updated;
-  weekConfig.value.days[todayIndex] = updated;
-  sittingMinutes.value = updated.sittingMinutes;
-  standingMinutes.value = updated.standingMinutes;
-  saveWeekConfig(weekConfig.value);
-}
-
-function resetSettings() {
-  weekConfig.value = getDefaultWeekConfig();
-  saveWeekConfig(weekConfig.value);
-  updateTodayConfig();
-}
-
 // Lifecycle
 onMounted(() => {
-  weekConfig.value = loadWeekConfig();
-  updateTodayConfig();
-
   const savedTheme =
     typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.theme) : null;
   const resolved =
@@ -498,12 +419,12 @@ onUnmounted(() => {
             <div class="config-input-group">
               <input
                 id="welcome-sitting"
-                v-model.number="todayEditConfig.sittingMinutes"
+                v-model.number="sittingMinutes"
                 type="number"
                 min="1"
                 max="120"
                 class="config-input"
-                @change="updateTodayEditConfig({ sittingMinutes: $event.target.valueAsNumber })"
+                @change="setSittingMinutes($event.target.valueAsNumber)"
               />
               <span class="config-unit">min</span>
             </div>
@@ -514,40 +435,16 @@ onUnmounted(() => {
             <div class="config-input-group">
               <input
                 id="welcome-standing"
-                v-model.number="todayEditConfig.standingMinutes"
+                v-model.number="standingMinutes"
                 type="number"
                 min="1"
                 max="60"
                 class="config-input"
-                @change="updateTodayEditConfig({ standingMinutes: $event.target.valueAsNumber })"
+                @change="setStandingMinutes($event.target.valueAsNumber)"
               />
               <span class="config-unit">min</span>
             </div>
           </div>
-        </div>
-
-        <!-- Weekly Schedule Preview -->
-        <div class="weekly-preview">
-          <div class="week-pills">
-            <button
-              v-for="(day, index) in 7"
-              :key="index"
-              type="button"
-              class="week-pill"
-              :class="{
-                'week-pill--today': index === getTodayIndex(),
-                'week-pill--enabled': weekConfig.days[index].enabled,
-                'week-pill--disabled': !weekConfig.days[index].enabled,
-              }"
-              :aria-label="`${DAY_NAMES[index]}: ${weekConfig.days[index].enabled ? 'Activo' : 'Desactivado'}`"
-              @click="openFullScheduleEditor(index)"
-            >
-              {{ DAY_ABBREV[index] }}
-            </button>
-          </div>
-          <button type="button" class="btn-edit-calendar" @click="openFullScheduleEditor(getTodayIndex())">
-            Editar Calendario
-          </button>
         </div>
 
         <!-- Start Workday Button -->
@@ -738,15 +635,6 @@ onUnmounted(() => {
       <div class="sheet-handle" aria-hidden="true" />
       <h2 class="sheet-title">CONFIGURACIÓN</h2>
 
-      <div class="sheet-settings">
-        <button type="button" class="settings-item" @click="openFullScheduleEditor(getTodayIndex())">
-          <span>Editar Calendario</span>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 6l6 6-6 6"/>
-          </svg>
-        </button>
-      </div>
-
       <div class="sheet-actions">
         <button
           id="btn-theme"
@@ -759,115 +647,10 @@ onUnmounted(() => {
           <svg v-if="theme === 'dark'" class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg v-else class="icon-setting" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button type="button" class="btn-secondary btn-icon-reset" aria-label="Restablecer valores" @click="resetSettings">
-          <svg class="icon-btn" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          <span>Restablecer</span>
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- Full Schedule Editor Modal -->
-  <div
-    v-if="selectedDayForEdit !== null"
-    class="schedule-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Editar calendario"
-  >
-    <div class="schedule-modal-backdrop" @click="closeFullScheduleEditor" />
-    <div class="schedule-modal-content">
-      <div class="schedule-modal-header">
-        <button type="button" class="btn-close-modal" aria-label="Cerrar" @click="closeFullScheduleEditor">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6l-12 12M6 6l12 12"/>
-          </svg>
-        </button>
-        <h2 class="schedule-modal-title">Editar Calendario</h2>
-      </div>
-
-      <!-- Day Selector Tabs -->
-      <div class="day-tabs">
-        <button
-          v-for="(day, index) in 7"
-          :key="index"
-          type="button"
-          class="day-tab"
-          :class="{ 'day-tab--active': selectedDayForEdit === index }"
-          @click="selectedDayForEdit = index"
-        >
-          {{ DAY_ABBREV[index] }}
-        </button>
-      </div>
-
-      <!-- Day Configuration Panel -->
-      <div v-if="selectedDayForEdit !== null" class="day-config-panel">
-        <h3 class="day-config-title">{{ DAY_NAMES[selectedDayForEdit] }}</h3>
-
-        <!-- Enabled Toggle -->
-        <div
-          class="config-toggle"
-          role="switch"
-          :aria-checked="weekConfig.days[selectedDayForEdit].enabled"
-          aria-label="Día activo"
-          @click="updateDayConfig(selectedDayForEdit, { enabled: !weekConfig.days[selectedDayForEdit].enabled })"
-        >
-          <span class="config-toggle-label">Activo</span>
-          <span
-            class="toggle-switch"
-            :class="{ 'toggle-switch--on': weekConfig.days[selectedDayForEdit].enabled }"
-          >
-            <span class="toggle-switch-knob" />
-          </span>
-        </div>
-
-        <template v-if="weekConfig.days[selectedDayForEdit].enabled">
-          <!-- Sitting Duration -->
-          <div class="config-block">
-            <label :for="'sitting-' + selectedDayForEdit" class="config-label">Sentado</label>
-            <div class="config-input-group">
-              <input
-                :id="'sitting-' + selectedDayForEdit"
-                :value="weekConfig.days[selectedDayForEdit].sittingMinutes"
-                type="number"
-                min="1"
-                max="120"
-                class="config-input"
-                @change="updateDayConfig(selectedDayForEdit, { sittingMinutes: $event.target.valueAsNumber })"
-              />
-              <span class="config-unit">min</span>
-            </div>
-          </div>
-
-          <!-- Standing Duration -->
-          <div class="config-block">
-            <label :for="'standing-' + selectedDayForEdit" class="config-label">De pie</label>
-            <div class="config-input-group">
-              <input
-                :id="'standing-' + selectedDayForEdit"
-                :value="weekConfig.days[selectedDayForEdit].standingMinutes"
-                type="number"
-                min="1"
-                max="60"
-                class="config-input"
-                @change="updateDayConfig(selectedDayForEdit, { standingMinutes: $event.target.valueAsNumber })"
-              />
-              <span class="config-unit">min</span>
-            </div>
-          </div>
-        </template>
-
-        <template v-else>
-          <p class="day-disabled-notice">Este día no está disponible para trabajar.</p>
-        </template>
-      </div>
-
-      <!-- Apply Button -->
-      <button type="button" class="btn-apply-schedule" @click="closeFullScheduleEditor">
-        Aplicar
-      </button>
-    </div>
-  </div>
 </template>
 
 <style scoped>
@@ -903,9 +686,9 @@ onUnmounted(() => {
 }
 
 .today-config-card {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 16px;
+   background: var(--surface);
+   border-radius: var(--radius-lg);
+   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -957,68 +740,6 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--muted);
   font-weight: 500;
-}
-
-.weekly-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.week-pills {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.week-pill {
-  flex: 1;
-  min-height: 44px;
-  padding: 8px;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--fill-tertiary);
-  color: var(--text);
-  touch-action: manipulation;
-}
-
-.week-pill--enabled {
-  background: #FCD34D;
-  color: #000000;
-}
-
-.week-pill--disabled {
-  background: var(--fill-quaternary);
-  opacity: 0.6;
-}
-
-.week-pill--today {
-  border: 2px solid #FCD34D;
-  font-weight: 700;
-}
-
-.week-pill:active {
-  transform: scale(0.96);
-}
-
-.btn-edit-calendar {
-  padding: 10px 16px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-edit-calendar:active {
-  background: var(--fill-tertiary);
 }
 
 .welcome-actions {
@@ -1107,9 +828,9 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 16px;
+   background: var(--surface);
+   border-radius: var(--radius-lg);
+   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1184,193 +905,6 @@ onUnmounted(() => {
   transform: scale(0.97);
 }
 
-/* Schedule Modal */
-.schedule-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0 1.5rem;
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-  pointer-events: auto;
-}
-
-.schedule-modal-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  pointer-events: auto;
-}
-
-.schedule-modal-content {
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-  background: var(--dim);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-  max-height: 90dvh;
-  overflow-y: auto;
-  animation: slideUpModal 0.3s var(--ease-spring) forwards;
-}
-
-@keyframes slideUpModal {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.schedule-modal-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.btn-close-modal {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  padding: 0;
-}
-
-.schedule-modal-title {
-  flex: 1;
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text);
-}
-
-.day-tabs {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 20px;
-}
-
-.day-tab {
-  flex: 1;
-  min-height: 40px;
-  border: none;
-  border-radius: var(--radius);
-  background: var(--fill-tertiary);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.day-tab--active {
-  background: #FCD34D;
-  color: #000000;
-}
-
-.day-config-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.day-config-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0;
-}
-
-.config-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-}
-
-.config-toggle-label {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.toggle-switch {
-  display: inline-block;
-  position: relative;
-  width: 50px;
-  height: 30px;
-  background: var(--fill-tertiary);
-  border: none;
-  border-radius: 15px;
-  flex-shrink: 0;
-  transition: background 0.3s;
-}
-
-.toggle-switch--on {
-  background: #FCD34D;
-}
-
-.toggle-switch-knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border-radius: 50%;
-  transition: left 0.3s;
-}
-
-.toggle-switch--on .toggle-switch-knob {
-  left: calc(100% - 27px);
-}
-
-.day-disabled-notice {
-  font-size: 15px;
-  color: var(--muted);
-  margin: 0;
-  font-style: italic;
-}
-
-.btn-apply-schedule {
-  width: 100%;
-  min-height: 50px;
-  padding: 0 24px;
-  background: #FCD34D;
-  color: #000000;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 17px;
-  cursor: pointer;
-  transition: all 0.2s;
-  touch-action: manipulation;
-}
-
-.btn-apply-schedule:active {
-  transform: scale(0.97);
-}
-
 /* Settings Sheet */
 .sheet {
   position: fixed;
@@ -1412,7 +946,7 @@ onUnmounted(() => {
   padding: 24px 20px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom));
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
-  animation: sheetSlideUp 0.4s var(--ease-spring) forwards;
+   animation: sheetSlideUp 0.4s var(--ease) forwards;
 }
 
 @keyframes sheetSlideUp {
@@ -1450,12 +984,12 @@ onUnmounted(() => {
 }
 
 .settings-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--border-color);
-  background: transparent;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   padding: 16px 0;
+   border-bottom: 1px solid var(--border);
+   background: transparent;
   border: none;
   color: var(--text);
   cursor: pointer;
@@ -1473,10 +1007,10 @@ onUnmounted(() => {
 }
 
 .sheet-actions {
-  display: flex;
-  gap: 12px;
-  border-top: 1px solid var(--border-color);
-  padding-top: 16px;
+   display: flex;
+   gap: 12px;
+   border-top: 1px solid var(--border);
+   padding-top: 16px;
   margin-top: 16px;
 }
 
@@ -1497,30 +1031,5 @@ onUnmounted(() => {
 
 .toggle-theme-icon:active {
   transform: scale(0.96);
-}
-
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  background: var(--fill-tertiary);
-  border: none;
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-height: 44px;
-}
-
-.btn-secondary:active {
-  transform: scale(0.96);
-}
-
-.btn-icon-reset {
-  flex: 1;
 }
 </style>
